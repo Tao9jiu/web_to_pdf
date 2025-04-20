@@ -37,4 +37,5 @@ ENV/
 # Project specific
 temp_pdfs/
 *.pdf
-
+*.txt
+!requirements.txt
