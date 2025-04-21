@@ -1,9 +1,7 @@
 from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse, urlunparse
-from tqdm import tqdm
 import time
-from collections import deque
 
 def crawl_website(base_url, start_path, output_file="docs.txt", skip_patterns=None):
     """
@@ -15,8 +13,7 @@ def crawl_website(base_url, start_path, output_file="docs.txt", skip_patterns=No
         output_file (str, optional): Output filename, defaults to "docs.txt"
         skip_patterns (list, optional): List of patterns to skip in URLs
     """
-    # Initialize sets to track visited and processed URLs
-    visited = set()  # URLs that have been visited
+    # Initialize sets to track processed URLs
     processed = set()  # URLs that have been processed
     all_links = set()  # All valid documentation links found
     

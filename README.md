@@ -4,7 +4,7 @@ This project provides tools to crawl websites and generate PDF documentation fro
 
 ## Overview
 
-This tool is designed to create a single PDF document from web content, making it particularly useful as a data source for AI tools and applications. By converting web documentation into a PDF format, you can:
+This tool is designed to create a single PDF document from web content by recursively crawling all subpages under a specified path while avoiding duplicate pages. By converting web documentation into a PDF format, you can:
 
 - Create offline-accessible documentation
 - Generate consistent training data for AI models
@@ -33,7 +33,7 @@ The easiest way to use this tool is through the `web_to_pdf.py` script:
 #### Usage
 
 ```bash
-python web_to_pdf.py --base-url "https://example.com" --start-path "/docs/" --output "custom_documentation.pdf"
+python web_to_pdf.py --base-url "https://example.com" --start-path "/docs/" --output "custom_documentation.pdf" --skip-patterns "#_" "?q=" --cookie-accept-button-text "Accept"
 ```
 
 Command line arguments:
