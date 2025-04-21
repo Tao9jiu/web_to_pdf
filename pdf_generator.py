@@ -2,38 +2,74 @@ from playwright.sync_api import sync_playwright
 from PyPDF2 import PdfMerger
 import os
 
-def save_webpage_as_pdf(page, url, output_file):
+def save_webpage_as_pdf(page, url, output_file, cookie_accept_button_text):
     """Save a single webpage as PDF"""
-    try:
-        # Visit the page
-        page.goto(url, wait_until='networkidle')
-        
-        # Wait for the page to fully load
-        page.wait_for_load_state('networkidle')
-        page.wait_for_timeout(2000)  # Additional 2-second wait to ensure dynamic content loads
-        
-        # PDF settings - corrected parameter names
-        pdf_options = {
-            'scale': 1,
-            'margin': {
-                'top': '0.4in',
-                'right': '0.4in',
-                'bottom': '0.4in',
-                'left': '0.4in'
-            },
-            'print_background': True,  # Corrected: printBackground -> print_background
-            'prefer_css_page_size': True,  # Corrected: preferCSSPageSize -> prefer_css_page_size
-            'format': 'A4'
-        }
-        
-        # Save as PDF
-        page.pdf(path=output_file, **pdf_options)
-        return True
-    except Exception as e:
-        print(f"Error saving page {url}: {str(e)}")
-        return False
+    max_retries = 3
+    retry_count = 0
+    
+    while retry_count < max_retries:
+        try:
+            # Visit the page with timeout
+            page.goto(url, wait_until='networkidle', timeout=30000)
+            
+            # Wait for the page to fully load
+            page.wait_for_load_state('networkidle', timeout=30000)
+            page.wait_for_timeout(2000)  # Additional 2-second wait to ensure dynamic content loads
+            
+            # Try to find and click any "Accept" buttons (e.g. for cookie notices)
+            try:
+                # Try different selectors for accept buttons
+                accept_selectors = [
+                    f"button:has-text('{cookie_accept_button_text}')",
+                    f"[role='button']:has-text('{cookie_accept_button_text}')",
+                ]
+                
+                for selector in accept_selectors:
+                    try:
+                        accept_button = page.locator(selector).first
+                        if accept_button and accept_button.is_visible():
+                            accept_button.click()
+                            print(f"Clicked Accept button using selector: {selector}")
+                            page.wait_for_timeout(2000)
+                            break
+                    except Exception as e:
+                        continue
+                
+            except Exception as e:
+                print(f"Error handling Accept button: {str(e)}")
+                page.wait_for_timeout(2000)
+            
+            # PDF settings
+            pdf_options = {
+                'scale': 1,
+                'margin': {
+                    'top': '0.4in',
+                    'right': '0.4in',
+                    'bottom': '0.4in',
+                    'left': '0.4in'
+                },
+                'print_background': True,
+                'prefer_css_page_size': True,
+                'format': 'A4'
+            }
+            
+            # Save as PDF
+            page.pdf(path=output_file, **pdf_options)
+            return True
+            
+        except Exception as e:
+            retry_count += 1
+            print(f"Attempt {retry_count}/{max_retries} failed for {url}: {str(e)}")
+            if retry_count < max_retries:
+                print("Retrying...")
+                page.wait_for_timeout(5000)  # Wait 5 seconds before retry
+            else:
+                print(f"Failed to process {url} after {max_retries} attempts")
+                return False
+    
+    return False
 
-def generate_pdf_from_urls(urls, output_filename='document.pdf'):
+def generate_pdf_from_urls(urls, output_filename, cookie_accept_button_text):
     """
     Generate PDF file from a list of URLs
     
@@ -66,7 +102,7 @@ def generate_pdf_from_urls(urls, output_filename='document.pdf'):
             output_file = os.path.join(temp_dir, f'page_{i}.pdf')
             print(f"Processing ({i}/{total_urls}): {url}")
             
-            if save_webpage_as_pdf(page, url, output_file):
+            if save_webpage_as_pdf(page, url, output_file, cookie_accept_button_text):
                 successful_pdfs.append(output_file)
         
         browser.close()
@@ -102,7 +138,7 @@ def main():
     with open('docs.txt', 'r') as f:
         urls = [line.strip() for line in f if line.strip()]
     
-    generate_pdf_from_urls(urls)
+    generate_pdf_from_urls(urls, 'document.pdf', 'Accept')
 
 if __name__ == "__main__":
     main()
